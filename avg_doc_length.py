@@ -17,33 +17,28 @@ res = es.search(
 total_doc_len = 0
 total_no_of_doc = res['hits']['total']
 scroll_id = res['_scroll_id']
-scroll_size = res['hits']['total']
+scroll_size = total_no_of_doc
 
 
 while (scroll_size > 0):
     try:
         res = es.scroll(scroll_id=scroll_id, scroll='10s')
+        
         for story in res['hits']['hits']:
-            
-            print "Doc Id {}".format(story["_id"]),
             rs = es.termvector(
                 index="documents",
                 doc_type="stories",
                 id=story["_id"],
-                term_statistics = "true"
+                field_statistics = "false"
             )
             
             doc_length = 0
-            print rs
-            break
             for term in rs["term_vectors"]["text"]["terms"]:
-                doc_length += rs["term_vectors"]["text"]["terms"][term]["ttf"]
-            print "Doc Length {}".format(doc_length)
+                doc_length += rs["term_vectors"]["text"]["terms"][term]["term_freq"]
+            
             total_doc_len += doc_length
             scroll_size -= 1
-            
         scroll_id = res['_scroll_id']
-        break
     except: 
         break
 avg_doc_len =  total_doc_len / total_no_of_doc
