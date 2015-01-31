@@ -2,44 +2,8 @@ from elasticsearch import Elasticsearch
 import operator
 es = Elasticsearch()
 
+avg_doc_len = 247
 
-res = es.search(
-        index="documents",
-        doc_type="stories",
-        scroll='10s',
-        search_type='scan',
-        body={
-                "query" : {
-                    "match_all" : {}
-                },
-                "script_fields": {
-                    "terms" : {
-                        "script": "doc[field].values",
-                        "params": {
-                                "field": "text"
-                                }
-                        }
-                }
-            }
-        )
-
-total_doc_len = 0
-
-scroll_id = res['_scroll_id']
-scroll_size = res['hits']['total']
-total_no_of_doc = scroll_size
-while (scroll_size > 0):
-    try:
-        res = es.scroll(scroll_id=scroll_id, scroll='10s')
-        for story in res['hits']['hits']:
-            total_doc_len += len(story['fields']['terms'][0])
-            scroll_size -= 1
-        scroll_id = res['_scroll_id']
-    except: 
-        break
-avg_doc_len =  total_doc_len / total_no_of_doc
-print "Average Document length is : {}".format(avg_doc_len)
- 
 
 # ["allegation","corrupt","official","governmental","jurisdiction"]
 
