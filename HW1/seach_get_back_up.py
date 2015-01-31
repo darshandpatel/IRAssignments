@@ -1,8 +1,13 @@
 from elasticsearch import Elasticsearch
 import operator
+from PorterStemmer import PorterStemmer
+
 es = Elasticsearch()
+ps = PorterStemmer()
 
 avg_doc_len = 247
+print ps.stem("allegation",0,len("allegation") - 1)
+'''
 
 
 # ["allegation","corrupt","official","governmental","jurisdiction"]
@@ -94,7 +99,7 @@ for doc_id in final_doc_ids:
     final_doc_scores[doc_id]=doc_score
 
 #sorted_doc_id = OrderedDict(sorted(final_doc_scores.items(), key=lambda t: t[1],reverse=True))
-
+'''
 '''
 value = 50
 for key, value in sorted(final_doc_scores.iteritems(), key=operator.itemgetter(1)):
@@ -102,7 +107,8 @@ for key, value in sorted(final_doc_scores.iteritems(), key=operator.itemgetter(1
 	value -= 1
 	if (value == 0):
 	    break
-'''     
+'''  
+'''   
 file = open("51.txt", "w")
 rank = 1
 for key, value in sorted(final_doc_scores.items(), key=operator.itemgetter(1),reverse=True):
@@ -113,5 +119,5 @@ file.close()
 
 
 	
-    
+'''
     
