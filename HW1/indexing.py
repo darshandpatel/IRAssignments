@@ -67,17 +67,13 @@ for file_path in glob.glob("/Users/Pramukh/Documents/Information Retrieval Data/
                     else:
                         text_started = False
                 elif '</DOC>' in line:
-                    if len(line_array) != 0:
-                        count+=1
-                        doc = {
-                            'docno' : doc_no,
-                            'text': line_array
-                            }
-                        res = es.index(index="documents", doc_type='stories', id=doc_no, body=doc)
+                    doc = {
+                        'docno' : doc_no,
+                        'text': line_array
+                        }
+                    res = es.index(index="documents", doc_type='stories', id=doc_no, body=doc)
                     line_array = []
-                    #print (res)
-                
-print 'Total number of indexing created is :' +str(count)
+
 
 
 
