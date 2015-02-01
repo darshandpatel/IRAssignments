@@ -59,7 +59,6 @@ with open(file_path) as data_file:
                     # find the stemmed value of current term
                     stemmed_term = ps.stem(qterm,0,len(qterm) - 1)
                     filtered_query_terms.append(stemmed_term)
-            filtered_query_terms = list(set(filtered_query_terms))
             query_terms[query_id]=filtered_query_terms
 
 #-------------------------------------------------------------------------------
