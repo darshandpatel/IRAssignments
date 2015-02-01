@@ -1,8 +1,7 @@
 from elasticsearch import Elasticsearch
 from PorterStemmer import PorterStemmer
 import re
-import operator
-import collections
+import math
 
 #-------------------------------------------------------------------------------
 docs_length = {}
@@ -66,7 +65,7 @@ with open(file_path) as data_file:
 #-------------------------------------------------------------------------------
 doc_score_per_term = {}
 match_doc_ids_per_term = {}
-
+doc_freq_per_term={}
 for no, terms in query_terms.iteritems():
 
     for term in terms:
@@ -106,10 +105,10 @@ for no, terms in query_terms.iteritems():
     
         match_doc_ids = []
         doc_score_dic = {}
-        scroll_size = res['hits']['total']
-        print 'Total number of hits for term {} are {}'.format(term,scroll_size)
+        total_hits = res['hits']['total']
+        doc_freq_per_term[term]=total_hits
+        print 'Total number of hits for term {} are {}'.format(term,total_hits)
         for story in res['hits']['hits']:
-            scroll_size -= 1
             match_doc_ids.append(story['_id'])
             doc_length = docs_length[story['_id']]                    
             term_freq = story['_score']
@@ -126,17 +125,18 @@ for no, terms in query_terms.iteritems():
         merged_list = merged_list + match_doc_ids_per_term[term]
     
     final_doc_ids = list(set(merged_list))
-    doc_okapi_tf_score = {}
+    doc_tf_idf_score = {}
     
     for doc_id in final_doc_ids:
         score = 0.0
         for term in terms:
             if doc_id in doc_score_per_term[term]:
-                score += doc_score_per_term[term][doc_id]
-        doc_okapi_tf_score[doc_id]=round(score,2)
+                score += (doc_score_per_term[term][doc_id] * (math.log(no_of_doc/doc_freq_per_term[term])))
+        doc_tf_idf_score[doc_id]=round(score,2)
+
     
     #sorted_doc = OrderedDict(sorted(doc_okapi_tf_score.items(), key=lambda t: t[1],reverse=True))
-    sorted_doc = sorted(doc_okapi_tf_score.iteritems(), key=lambda x:-x[1])[:1000]
+    sorted_doc = sorted(doc_tf_idf_score.iteritems(), key=lambda x:-x[1])[:1000]
     query_outputs[no] = sorted_doc
 #query_outputs = collections.OrderedDict(sorted(query_outputs.items()))
 file = open("/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/tfidfoutput.txt", "w")
