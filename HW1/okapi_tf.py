@@ -1,8 +1,6 @@
 from elasticsearch import Elasticsearch
 from PorterStemmer import PorterStemmer
 import re
-import operator
-import collections
 
 #-------------------------------------------------------------------------------
 docs_length = {}
@@ -60,7 +58,6 @@ with open(file_path) as data_file:
                     # find the stemmed value of current term
                     stemmed_term = ps.stem(qterm,0,len(qterm) - 1)
                     filtered_query_terms.append(stemmed_term)
-            filtered_query_terms = list(set(filtered_query_terms))
             query_terms[query_id]=filtered_query_terms
 
 #-------------------------------------------------------------------------------
@@ -106,10 +103,8 @@ for no, terms in query_terms.iteritems():
     
         match_doc_ids = []
         doc_score_dic = {}
-        scroll_size = res['hits']['total']
-        print 'Total number of hits for term {} are {}'.format(term,scroll_size)
+        print 'Total number of hits for term {} are {}'.format(term,res['hits']['total'])
         for story in res['hits']['hits']:
-            scroll_size -= 1
             match_doc_ids.append(story['_id'])
             doc_length = docs_length[story['_id']]                    
             term_freq = story['_score']
