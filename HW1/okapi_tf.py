@@ -2,10 +2,12 @@ from elasticsearch import Elasticsearch
 from PorterStemmer import PorterStemmer
 import re
 import operator
+import collections
 
 #-------------------------------------------------------------------------------
 docs_length = {}
 total_doc_length = 0
+query_outputs={}
 no_of_doc = 0
 avg_doc_len = 0.0
 doclengths_path = "/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/doclengths.txt"
@@ -18,7 +20,7 @@ with open(doclengths_path) as data_file:
         docs_length[words[0]] = int(words[1])
         total_doc_length += int(words[1])
         no_of_doc += 1
-avg_doc_len = total_doc_length / no_of_doc
+avg_doc_len = total_doc_length / float(no_of_doc)
 print "Average document length is {}".format(avg_doc_len)
 
 #-------------------------------------------------------------------------------
@@ -40,7 +42,7 @@ with open(file_path) as data_file:
     
     for line in data_file:
         
-        line = re.sub('[,.]', '', line)
+        line = re.sub('[,."()\n]', '', line)
         words = line.split()
         
         if len(words) >= 1:
@@ -60,10 +62,9 @@ with open(file_path) as data_file:
             filtered_query_terms = list(set(filtered_query_terms))
             query_terms[query_id]=filtered_query_terms
 
+#-------------------------------------------------------------------------------
 doc_score_per_term = {}
 match_doc_ids_per_term = {}
-
-#-------------------------------------------------------------------------------
 
 for no, terms in query_terms.iteritems():
 
@@ -72,8 +73,7 @@ for no, terms in query_terms.iteritems():
         res = es.search(
                 index="documents",
                 doc_type="stories",
-                scroll='10s',
-                search_type='scan',
+                size=no_of_doc,
                 body={
                         "query": {
                             "function_score": {
@@ -97,7 +97,7 @@ for no, terms in query_terms.iteritems():
                             "boost_mode": "replace"
                             }
                         },
-                        "size": 10000,
+                        "size": no_of_doc,
                         "fields": ["stream_id"]
                     }
                 )
@@ -105,24 +105,16 @@ for no, terms in query_terms.iteritems():
     
         match_doc_ids = []
         doc_score_dic = {}
-        scroll_id = res['_scroll_id']
         scroll_size = res['hits']['total']
         print 'Total number of hits for term {} are {}'.format(term,scroll_size)
-        while (scroll_size > 0):
-            try:
-                res = es.scroll(scroll_id=scroll_id, scroll='10s')
-                for story in res['hits']['hits']:
-                    scroll_size -= 1
-                    match_doc_ids.append(story['_id'])
-                    doc_length = docs_length[story['_id']]                    
-                    term_freq = story['_score']
-                    print story
-                    okapi_tf_w_d = (term_freq/(term_freq + 0.5 + ((1.5)*(doc_length/avg_doc_len))))
-                    doc_score_dic[story["_id"]]=okapi_tf_w_d
-                    
-                scroll_id = res['_scroll_id']
-            except: 
-                break
+        for story in res['hits']['hits']:
+            scroll_size -= 1
+            match_doc_ids.append(story['_id'])
+            doc_length = docs_length[story['_id']]                    
+            term_freq = story['_score']
+            okapi_tf_w_d = (float(term_freq)/(term_freq + 0.5 + ((1.5)*(float(doc_length)/avg_doc_len))))
+            doc_score_dic[story["_id"]]=okapi_tf_w_d
+
                 
         match_doc_ids_per_term[term] = match_doc_ids
         doc_score_per_term[term] = doc_score_dic
@@ -140,19 +132,20 @@ for no, terms in query_terms.iteritems():
         for term in terms:
             if doc_id in doc_score_per_term[term]:
                 score += doc_score_per_term[term][doc_id]
-        doc_okapi_tf_score[doc_id]=score
+        doc_okapi_tf_score[doc_id]=round(score,2)
     
     #sorted_doc = OrderedDict(sorted(doc_okapi_tf_score.items(), key=lambda t: t[1],reverse=True))
-    sorted_doc = sorted(doc_okapi_tf_score.iteritems(), key=lambda x:-x[1])[:100]
-    
-  
-    file = open(no+".txt", "w")
+    sorted_doc = sorted(doc_okapi_tf_score.iteritems(), key=lambda x:-x[1])[:1000]
+    query_outputs[no] = sorted_doc
+#query_outputs = collections.OrderedDict(sorted(query_outputs.items()))
+file = open("/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/queryoutputSecond2.txt", "w")
+for no, sorted_doc in query_outputs.iteritems():
     rank = 1
     for key, value in sorted_doc:
-            print key,value
-            file.write(no+" Q0 "+str(key)+" "+str(rank)+" "+str(value)+" Exp\n")
-            rank += 1
-    file.close()
+        string = "{} Q0 {} {} {} Exp\n".format(no,key,rank,value)
+        file.write(string)
+        rank += 1
+file.close()
     
-    break
+
     
