@@ -46,18 +46,19 @@ with open(file_path) as data_file:
         words = line.split()
         
         if len(words) >= 1:
-            
+
             query_id = words[0]
             filtered_query_terms = []
             
             for index in range(4,len(words)):
                 
+                qterm = words[index].lower()
                 # if term is in stop word list do not consider it
-                if words[index] in stop_words:
+                if qterm in stop_words:
                     continue
                 else:
                     # find the stemmed value of current term
-                    stemmed_term = ps.stem(words[index],0,len(words[index]) - 1)
+                    stemmed_term = ps.stem(qterm,0,len(qterm) - 1)
                     filtered_query_terms.append(stemmed_term)
             filtered_query_terms = list(set(filtered_query_terms))
             query_terms[query_id]=filtered_query_terms
