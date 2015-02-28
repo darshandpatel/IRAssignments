@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -100,6 +101,102 @@ public class ReadingDoc {
 		}
 				
 		return dBlocks;
+	}
+	
+	public static void assignNumToDocId(){
+		
+		try {
+			
+			String path = "/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/doclist.txt";
+			File doclistFile = new File(path);
+			BufferedReader br = new BufferedReader(new FileReader(doclistFile));
+			HashMap<String,Integer> newDocId = new HashMap<String, Integer>();
+			br.readLine();
+			String currentLine;
+			int number = 1;
+			while((currentLine = br.readLine()) != null){
+				String[] pars = currentLine.split(" ");
+				newDocId.put(pars[1], number);
+				number++;
+				
+			}
+			br.close();
+			
+			String newDocIdFile = "/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/newdocids.txt";
+			File newFile = new File(newDocIdFile);
+			PrintWriter pr = new PrintWriter(new BufferedWriter(new FileWriter(newFile,true)));
+			
+			Iterator it = newDocId.entrySet().iterator();
+			while(it.hasNext()){
+				Map.Entry<String, Integer> pair = (Entry<String, Integer>) it.next();
+				pr.print(pair.getKey());
+				pr.print(" ");
+				pr.println(pair.getValue().toString());
+			}
+			pr.close();
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+	}
+	
+	public static HashMap<String,String> getNewIdsbyDocIds(){
+		
+		HashMap<String,String> newDocId = new HashMap<String, String>();
+		try {
+			String path = "/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/newdocids.txt";
+			File newDocIdsFile = new File(path);
+			BufferedReader br;
+			br = new BufferedReader(new FileReader(newDocIdsFile));
+			String currentLine;
+			int number = 1;
+			while((currentLine = br.readLine()) != null){
+				String[] pars = currentLine.split(" ");
+				newDocId.put(pars[0], pars[1]);
+			}
+			br.close();
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return newDocId;
+		
+		
+	}
+	
+	public static HashMap<String,String> getDocIdsbyNewIds(){
+		
+		HashMap<String,String> docIds = new HashMap<String, String>();
+		try {
+			String path = "/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/newdocids.txt";
+			File newDocIdsFile = new File(path);
+			BufferedReader br;
+			br = new BufferedReader(new FileReader(newDocIdsFile));
+			String currentLine;
+			while((currentLine = br.readLine()) != null){
+				String[] pars = currentLine.split(" ");
+				docIds.put(pars[1], pars[0]);
+			}
+			br.close();
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return docIds;
+		
+		
 	}
 	
 	public static void readFolder(){
@@ -252,6 +349,7 @@ public class ReadingDoc {
 	
 	public static void indexing(Map<String, String> terms){
 		
+		
 		Iterator<Entry<String, String>> termIterator = terms.entrySet().iterator();
 		short counter = 0;
 		int number =0;
@@ -299,8 +397,10 @@ public class ReadingDoc {
 	}
 	
 	
+	
 	public static void indexByDoc(){
 		
+		HashMap<String, String> newDocIds = getNewIdsbyDocIds();
 		File folder = new File("/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/ap89_collection/");
 		
 		Map<String, ArrayList<DBlock>> termsDBlock = new HashMap<String, ArrayList<DBlock>>();;
@@ -323,7 +423,8 @@ public class ReadingDoc {
 					while((line = br.readLine()) != null){
 						if (line.contains("<DOCNO>")){
 							String words[]=line.split(" ");
-							docId = words[1];
+							//docId = words[1];
+							docId = newDocIds.get(words[1]);
 							termIndex = 1;
 							termFreqency = new DefaultHashMap<String, Short>(new Short((short) 0));
 							termPositions = new HashMap<String, ArrayList<Short>>();
@@ -404,26 +505,30 @@ public class ReadingDoc {
 										int listLength = ((ArrayList<DBlock>)pair.getValue()).size();
 										for (int i = 0; i < (listLength-1) ; i++){
 											DBlock db = ((ArrayList<DBlock>)pair.getValue()).get(i);
-											String subDocId = db.getDocId().substring(4);
-											indexWriter.print(subDocId+":");
-											byteOffset += ((subDocId.length() + 1));
+											indexWriter.print(db.getDocId()+":");
+											byteOffset += ((db.getDocId().length() + 1));
 											indexWriter.print(db.getTermFreq());
 											byteOffset += db.getTermFreq().toString().length();
 											indexWriter.print(":");
 											byteOffset += 1;
-											for(Short pos : db.getPositions()){
+											int lenPos = db.positions.size();
+											for(int j=0;j < (lenPos - 1);j++){
+												Short pos = db.positions.get(j);
 												indexWriter.print(pos);
 												indexWriter.print(",");
 												byteOffset += (1 + (pos.toString().length()));
 											}
-											indexWriter.print(" ");
-											byteOffset += 1;
+											if (lenPos != 0){
+												Short pos = db.positions.get(lenPos-1);
+												indexWriter.print(pos);
+												indexWriter.print(" ");
+												byteOffset += ((pos.toString().length()) + 1);
+											}
 										}
 										if(listLength != 0){
 											DBlock db = ((ArrayList<DBlock>)pair.getValue()).get(listLength-1);
-											String subDocId = db.getDocId().substring(4);
-											indexWriter.print(subDocId+":");
-											byteOffset += ((subDocId.length() + 1));
+											indexWriter.print(db.getDocId()+":");
+											byteOffset += ((db.getDocId().length() + 1));
 											indexWriter.print(db.getTermFreq());
 											byteOffset += db.getTermFreq().toString().length();
 											indexWriter.print(":");
@@ -474,18 +579,122 @@ public class ReadingDoc {
 		}
 		
 		
-		// Now merging the file.
+		
+		
+		
+		
 	    
 	}
 	
+	public static void mergeFile(){
+		// Now merging the file.
+		
+		// First of all create the hash map of the offset file
+		HashMap<String, ArrayList<Integer>> termOffsets = new HashMap<String, ArrayList<Integer>>();
+		File offsetFileR = new File("/Users/Pramukh/Documents/Information Retrieval Data/HW2/offset.txt");
+		FileReader fr;
+		try {
+			fr = new FileReader(offsetFileR);
+			BufferedReader br =  new BufferedReader(fr);
+			String currentLine;
+			while((currentLine = br.readLine()) != null){
+				
+				String str[] = currentLine.split(" ");
+				if (termOffsets.containsKey(str[0]) == false){
+					ArrayList<Integer> offset = new ArrayList<Integer>();
+					offset.add(Integer.parseInt(str[1]));
+					termOffsets.put(str[0],offset);
+				}else{
+					termOffsets.get(str[0]).add(Integer.parseInt(str[1]));
+				}
+				
+			}
+			
+			System.out.println(termOffsets.get("repaying"));
+			
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		String newIndexPath = "/Users/Pramukh/Documents/Information Retrieval Data/HW2/newIndex.txt";
+		String newOffsetPath = "/Users/Pramukh/Documents/Information Retrieval Data/HW2/newOffset.txt";
+		String oldIndexPath = "/Users/Pramukh/Documents/Information Retrieval Data/HW2/indexWOStepWO.txt";
+		RandomAccessFile oldIndexFile;
+		try {
+			
+			Iterator it = termOffsets.entrySet().iterator();
+			int count = 0;
+			HashMap<String,StringBuilder> termStrings = new HashMap<String, StringBuilder>();
+			oldIndexFile = new RandomAccessFile(oldIndexPath, "r");
+			long offset = 0;
+			while(it.hasNext()){
+				Map.Entry pair = (Map.Entry)it.next();
+				String term = pair.getKey().toString();
+				ArrayList<Integer> positions = (ArrayList<Integer>)pair.getValue();
+				
+				StringBuilder dblocks = new StringBuilder();
+				for(Integer pos : positions){
+					oldIndexFile.seek(pos);
+					String fileLine = oldIndexFile.readLine();
+					//System.out.println(fileLine);
+					String[] parts = fileLine.split(" ");
+					int partLen = parts.length;
+					
+					int i=1;
+					for (i = 1; i < (partLen - 1); i++){
+						dblocks.append(parts[i]);
+						dblocks.append(" ");
+					}
+					if(i == (partLen-1)){
+						dblocks.append(parts[partLen - 1]);
+					}
+				}
+				count++;
+				termStrings.put(term, dblocks);
+				if(count == 1000){
+					PrintWriter newIndexWriter = new PrintWriter(new BufferedWriter(new FileWriter(newIndexPath, true)));
+					PrintWriter newOffsetWriter = new PrintWriter(new BufferedWriter(new FileWriter(newOffsetPath, true)));
+					
+					Iterator termIterator = termStrings.entrySet().iterator();
+					while(termIterator.hasNext()){
+						
+						Map.Entry termDBlock = (Map.Entry)termIterator.next();
+						newIndexWriter.print(termDBlock.getKey().toString()+" ");
+						newOffsetWriter.print(termDBlock.getKey().toString()+" ");
+						newOffsetWriter.print(offset+" ");
+						offset += (termDBlock.getKey().toString()+" ").length();
+						newIndexWriter.println(termDBlock.getValue().toString());
+						offset += ((termDBlock.getValue().toString()).length() + 1);
+						newOffsetWriter.println(offset-1);
+					}
+					newIndexWriter.close();
+					newOffsetWriter.close();
+					count = 0;
+					termStrings = new HashMap<String, StringBuilder>();
+				}
+			}
+			oldIndexFile.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+	}
 	
 	public static void main(String args[]){
 		//ReadingDoc.readFolder();	
 		//System.out.println(ReadingDoc.getInvertedList("hello","ap890101"));
 		//Map map = ReadingDoc.getUniqueTerms();
 		//ReadingDoc.indexing(map);
-		
-		ReadingDoc.indexByDoc();
+		//ReadingDoc.assignNumToDocId();
+		//ReadingDoc.indexByDoc();
+		ReadingDoc.mergeFile();
 	}
 
 }
