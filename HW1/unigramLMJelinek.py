@@ -22,6 +22,24 @@ with open(doclengths_path) as data_file:
 avg_doc_len = total_doc_length / float(no_of_doc)
 print "Average document length is {}".format(avg_doc_len)
 
+
+res = es.search(
+        index="documents",
+        body={
+                "aggs" : {
+                    "unique_terms" : {
+                        "cardinality" : {
+                            "field" : "text"
+                        
+                        }
+                    }
+                }
+            }
+        )
+
+unique_terms = res["aggregations"]["unique_terms"]["value"]
+print "Number of unique terms in corpos is : {}".format(unique_terms)
+
 #-------------------------------------------------------------------------------
 ps = PorterStemmer()
 
@@ -69,12 +87,10 @@ doc_score_per_term = {}
 match_doc_ids_per_term = {}
 doc_freq_per_term={}
 tf_terms_per_doc={}
+cf={}
+lambda_value = 0.5
 for no, terms in query_terms.iteritems():
 
-    tf_w_q={}
-    for q_term in set(terms):
-        tf_w_q[q_term] = terms.count(q_term)
-    
     for term in terms:
     
         res = es.search(
@@ -114,42 +130,44 @@ for no, terms in query_terms.iteritems():
         doc_freq_per_term[term]=res['hits']['total']
         #print 'Total number of hits for term {} are {}'.format(term,res['hits']['total'])
         tf_per_doc = {}
+        ttf=0
         for story in res['hits']['hits']:
             match_doc_ids.append(story['_id'])
             tf_per_doc[story["_id"]]=story['_score']
-
+            ttf += story['_score'] 
+        cf[term]= ttf
         tf_terms_per_doc[term] = tf_per_doc      
         match_doc_ids_per_term[term] = match_doc_ids
-    
+
     
     merged_list = []
     for term in match_doc_ids_per_term.keys():
         merged_list = merged_list + match_doc_ids_per_term[term]
     
     final_doc_ids = list(set(merged_list))
-    doc_okapi_bm_25_score = {}
-    
-    k1=1.2
-    k2=2.0
-    b=0.75
+    unigram_lm_jm = {}
     for doc_id in final_doc_ids:
-        score = 0.0
+        score = 0
         for term in terms:
-            if doc_id in tf_terms_per_doc[term]:
-                part1 = math.log(( 0.5 + no_of_doc)/(0.5 + doc_freq_per_term[term]))
-                part2_1 = (tf_terms_per_doc[term][doc_id] + (tf_terms_per_doc[term][doc_id] * k1))
-                part2_2 = (tf_terms_per_doc[term][doc_id] + (k1 * ((1 - b) + (b * (float(docs_length[doc_id])/avg_doc_len)))))
-                part2 = part2_1 / float(part2_2)
-                part3 = (tf_w_q[term] + (k2 * tf_w_q[term]))/(float(k2 + tf_w_q[term]))
-                score += part1 * part2 * part3
-        doc_okapi_bm_25_score[doc_id]=round(score,2)
+            if cf[term] != 0:
+                if doc_id in tf_terms_per_doc[term]:
+                    part1 = (lambda_value * ((tf_terms_per_doc[term][doc_id]) / (float(docs_length[doc_id]))))
+                    part2 = (1 - lambda_value) * (cf[term] / unique_terms)
+                    unigram_lm_jm_score = math.log(part1 + part2)
+                else:
+                    unigram_lm_jm_score = math.log((1 - lambda_value) * (cf[term] / unique_terms))
+            else:
+                unigram_lm_jm_score=0
+            
+            score += unigram_lm_jm_score
+        unigram_lm_jm[doc_id]=round(score,2)
 
     
     #sorted_doc = OrderedDict(sorted(doc_okapi_tf_score.items(), key=lambda t: t[1],reverse=True))
-    sorted_doc = sorted(doc_okapi_bm_25_score.iteritems(), key=lambda x:-x[1])[:1000]
+    sorted_doc = sorted(unigram_lm_jm.iteritems(), key=lambda x:-x[1])[:1000]
     query_outputs[no] = sorted_doc
 #query_outputs = collections.OrderedDict(sorted(query_outputs.items()))
-file = open("/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/okapibm25output.txt", "w")
+file = open("/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/resultunigramLMJM.txt", "w")
 for no, sorted_doc in query_outputs.iteritems():
     rank = 1
     for key, value in sorted_doc:

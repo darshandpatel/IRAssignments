@@ -60,7 +60,6 @@ with open(file_path) as data_file:
                     # find the stemmed value of current term
                     stemmed_term = ps.stem(qterm,0,len(qterm) - 1)
                     filtered_query_terms.append(stemmed_term)
-            filtered_query_terms = list(set(filtered_query_terms))
             query_terms[query_id]=filtered_query_terms
 
 #-------------------------------------------------------------------------------
@@ -139,7 +138,7 @@ for no, terms in query_terms.iteritems():
     sorted_doc = sorted(doc_okapi_tf_score.iteritems(), key=lambda x:-x[1])[:1000]
     query_outputs[no] = sorted_doc
 #query_outputs = collections.OrderedDict(sorted(query_outputs.items()))
-file = open("/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/queryoutputSecond2.txt", "w")
+file = open("/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/resultokapitf.txt", "w")
 for no, sorted_doc in query_outputs.iteritems():
     rank = 1
     for key, value in sorted_doc:
