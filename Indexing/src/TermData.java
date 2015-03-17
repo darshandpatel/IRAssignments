@@ -8,6 +8,7 @@ public class TermData implements Serializable{
 	 */
 	private static final long serialVersionUID = 1L;
 	String name;
+	Integer length;
 	ArrayList<DBlock> dblocks;
 	public String getName() {
 		return name;

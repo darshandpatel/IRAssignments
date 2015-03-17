@@ -1,51 +1,128 @@
-import java.io.ByteArrayOutputStream;
+/**
+ * 
+ */
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-
+/**
+ * @author Sagar6903
+ *
+ */
 public class Test {
+	 
+	
 
-	public static void main(String[] args) {
+
+	static int i = 0;
+	static File collection = new File("/Users/Pramukh/Documents/Information Retrieval Data/AP_DATA/ap89_collection/");
+	static HashMap<String, Integer> tokenM = new HashMap<String, Integer>();
+	static ArrayList<String> lstStopwords = new ArrayList<String>();
+	
+	public static void main(String[] str) throws IOException{
 		
-		String abcd = "Hello#buddy#";
-		String[] text = abcd.split("#");
-		System.out.println("Number of parts are :"+text.length);
-		for (String a : text){
-			System.out.println(a);
+		/*
+		tokenM.put("A", 5);
+		tokenM.put("A", tokenM.get("A").intValue()+1);
+		
+		System.out.println(tokenM);
+		getStopWords();
+		File[] directoryListing = collection.listFiles();
+		if (directoryListing != null) {
+			for (File child : directoryListing) {
+				System.out.println("Reading : " + ++i + " : " + child.getName());
+				fetchContentBuilders(child);
+			}
+		}
+		System.out.println("Token Count : " + tokenM.size());
+		*/
+		parseDocText(null,null);
+	}
+		
+		public static void fetchContentBuilders(File input) throws IOException {
+
+			String line = "";
+			String docNumber = "";
+			StringBuilder text = null;
+			boolean isText = false;
+			
+			BufferedReader reader = null;
+			
+			try {
+				reader = new BufferedReader(new FileReader(input));
+
+				while ((line = reader.readLine()) != null) {
+					if (line.startsWith("<DOCNO>")) {
+						if (text != null) {
+							
+							if(!text.toString().equals(" "))
+								parseDocText(docNumber, text.toString());
+							text = null;
+						}
+
+						docNumber = line.substring(line.indexOf("<TEXT>") + 7,
+								line.indexOf("</DOCNO>") - line.indexOf("<TEXT>")).trim();
+
+					} else if (line.startsWith("<TEXT>")) {
+						isText = true;
+					} else if (line.startsWith("</TEXT>")) {
+						isText = false;
+					} else {
+						if (isText){
+							if (text == null)
+								text = new StringBuilder();
+							text.append(" " + line);
+						}
+					}
+				}
+				if (text != null) {
+					if(!text.toString().equals(" "))
+						parseDocText(docNumber, text.toString());
+					text = null;
+				}
+				
+			} catch (IOException e) {
+
+			} finally {
+				reader.close();
+			}
+		}
+
+		public static void parseDocText(String docNumber, String inputText) throws IOException{
+			inputText = "permitted a somewhat personal response to the vice president's";
+			Pattern pattern = Pattern.compile("\\w+(\\.?\\w+)*");
+			Matcher matcher = pattern.matcher(inputText);
+			while (matcher.find()) {
+				System.out.println(matcher.group());
+				/*
+				String token = inputText.substring(matcher.start(), matcher.end());
+				token = token.replaceAll("\\.$", "");
+				token = token.toLowerCase();
+				
+				if(!lstStopwords.contains(token))
+					tokenM.put(token, 0);
+				*/
+				
+			}
 		}
 		
-		// TODO Auto-generated method stub
-		DefaultHashMap<String, ArrayList<String>> abc = new DefaultHashMap<String, ArrayList<String>>(new ArrayList<String>());
-		abc.put("hello", new ArrayList<String>());
-		abc.get("hello").add("hello2");
-		System.out.println(abc.get("hello"));
-		
-		Short s = new Short((short) 10);
-		System.out.println(s);
-		System.out.println(s+100);
-		
-		byte[] buffer = "Help I am trapped in a fortune cookie factory\n".getBytes();
-		
-		
-		System.out.println(new String(buffer));
-		final String string = "Hello World ";
-		Short x = 100;
-		
-		ByteBuffer buffer1 = ByteBuffer.allocate("Helll343o".length()+2);
-		buffer1.putShort(new Short((short)12));
-		buffer1.put("Helll343o".getBytes());
-		System.out.println(buffer1);
-		// Check encoded sizes
-		byte[] utf8Bytes;
-		utf8Bytes = string.getBytes();
-		System.out.println(utf8Bytes.length); // prints "11
-		
-		
-		
+		public static ArrayList<String> getStopWords() throws IOException {
 
-	}
-
+			BufferedReader reader;
+			File stopWordsFile = new File("/Users/Pramukh/Documents/Information Retrieval Data/HW2/stoplist.txt");
+			reader = new BufferedReader(new FileReader(stopWordsFile));
+			String line = "";
+			while ((line = reader.readLine()) != null) {
+				lstStopwords.add(line.toLowerCase());
+			}
+			reader.close();
+			
+			return lstStopwords;
+		}
 }

@@ -1,5 +1,6 @@
 import java.io.BufferedWriter;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -13,42 +14,33 @@ import java.nio.channels.FileChannel;
 
 public class FileTest {
 	
-	public static void main(String args[]){
+	public static void testByteBuffer(){
 		RandomAccessFile file;
 		try {
 			int abc= 1000000;
-			String test = "/Users/Pramukh/Documents/Information Retrieval Data/HW2/number.dat";
+			String test = "/Users/Pramukh/Documents/Information Retrieval Data/HW2/dataTEst.dat";
 			FileOutputStream fos = new FileOutputStream(test);
 			DataOutputStream dos = new DataOutputStream(fos);
-			dos.writeInt(abc);
-			dos.writeInt(abc);
-			dos.write((new String("Hello")).getBytes());
+			dos.write((new String("term") + " ").getBytes());
+			dos.writeInt(12343);
+			dos.write((new String(":").getBytes()));
+			dos.writeInt(1);
+			dos.write((new String(":").getBytes()));
+			dos.writeInt(6);
+			
 			dos.close();
 			fos.close();
 			
 			
 			FileInputStream inputStream = new FileInputStream(test);
 			FileChannel inChannel = inputStream.getChannel();
-			ByteBuffer buf = ByteBuffer.allocate(8);
-			inChannel.read(buf);
+			int offsetDiff = 25;
+			ByteBuffer buf = ByteBuffer.allocate(offsetDiff);
+			inChannel.position(0);
 			
 			
-		    System.out.println(buf.getInt(4));
-		    /*
-			PrintWriter testWriter = new PrintWriter(new BufferedWriter(new FileWriter(test, false)));
 			
-			//testWriter.print("Hello");
-			testWriter.write(abc);
-			testWriter.close();
-			
-			
-			file = new RandomAccessFile(test, "r");
-			System.out.println(file.getFilePointer());
-			file.seek(0);
-			System.out.println(file.readInt());
-
-			file.close();
-			*/
+		    inChannel.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -56,6 +48,29 @@ public class FileTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	
+	public static void readTestFile(){
+		try{
+			String test = "/Users/Pramukh/Documents/Information Retrieval Data/HW2/indexWOStopWithStemmed.txt";
+
+			RandomAccessFile file;
+			file = new RandomAccessFile(test, "r");
+			file.seek(109405764);
+			System.out.println(file.readLine());
+
+			file.close();
+		}catch(FileNotFoundException e){
+			
+		}catch(IOException e){
+			
+		}
+	}
+	
+	public static void main(String args[]){
+		
+		    FileTest.readTestFile();
 
 	}
 
